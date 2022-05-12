@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "start": "node -r tsm --enable-source-maps index.ts",
+    "dev": "tsc -w --noEmit"
+  },
+  "dependencies": {
+    "@types/node-fetch": "2",
+    "fastify": "^3.29.0",
+    "node-fetch": "2",
+    "tsm": "^2.2.1",
+    "typescript": "^4.6.4"
+  }
+}
