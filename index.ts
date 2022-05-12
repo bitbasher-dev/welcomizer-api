@@ -5,6 +5,8 @@ import { CONFIG } from "./config";
 import { PrismaClient } from "@prisma/client";
 import { initializeApp } from "firebase/app";
 import { customAlphabet } from "nanoid";
+
+import { doc, getDoc, getFirestore } from "firebase/firestore";
 import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
 
 // TODO: Add SDKs for Firebase products that you want to use
@@ -26,6 +28,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const firebase = initializeApp(firebaseConfig);
 const storage = getStorage(firebase);
+const db = getFirestore(firebase);
 
 // Create a reference under which you want to list
 const listRef = ref(storage, "/");
@@ -39,6 +42,13 @@ const app = fastify();
 app.register(fastifyCors);
 
 const prisma = new PrismaClient();
+
+async function getFirebaseFCMTokens() {
+  const docRef = doc(db, "users", "9uKM9DzNVaV0IyYyDTDSaZnt3R62");
+  const docSnap = await getDoc(docRef);
+
+  return docSnap.data()?.fcmTokens;
+}
 
 async function run() {
   const prismaWalMode = await prisma.$queryRaw`
@@ -80,6 +90,8 @@ async function run() {
       },
     });
 
+    let registration_ids = await getFirebaseFCMTokens();
+
     const response = await fetch(`https://fcm.googleapis.com/fcm/send`, {
       method: "POST",
       headers: {
@@ -87,9 +99,7 @@ async function run() {
         Authorization: `key=${CONFIG.FIREBASE_CLOUD_MESSAGING_TOKEN}`,
       },
       body: JSON.stringify({
-        registration_ids: [
-          "d1Zr08xGZkKhkCr5OteHwM:APA91bGjw3pS5h63SemNGBjao1mvacajVt3b69VwfQWy6vNnvNR5pAgWmMJ6MuMB8WO1_szSTQghKQ43OuDhy7gKfHnR-2sVB74K8OZDJSTYC8bQ2i0AJWx5tlv8MsbQRCdVQAcMn9H-",
-        ],
+        registration_ids,
         notification: {
           title: "New opt-in!",
           body: `${contactFirstName ? `${contactFirstName} ` : ""}${
@@ -122,9 +132,7 @@ async function run() {
       return res.status(404).send({ msg: `Video not found with hash ${hash}` });
     }
 
-    let url = await getDownloadURL(
-      ref(storage, `/${video.finalVideoName}`)
-    );
+    let url = await getDownloadURL(ref(storage, `/${video.finalVideoName}`));
 
     res.redirect(302, url);
   });
@@ -135,7 +143,11 @@ async function run() {
   }) {
     const { email, welcomizerVideoURL } = params;
 
-    if (email !== "pedropalhari@gmail.com") return;
+    if (
+      email !== "pedropalhari@gmail.com" &&
+      email !== "nicoleandersonenglish@gmail.com"
+    )
+      return;
 
     let response = await fetch(
       `https://api.berserkermail.com/external-api/contact`,
