@@ -5,7 +5,7 @@ import { CONFIG } from "./config";
 import { PrismaClient } from "@prisma/client";
 import { initializeApp } from "firebase/app";
 import { customAlphabet } from "nanoid";
-import { getStorage, ref, listAll } from "firebase/storage";
+import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -41,7 +41,16 @@ app.register(fastifyCors);
 const prisma = new PrismaClient();
 
 async function run() {
-  app.get("/ping", async (req, res) => {
+  const prismaWalMode = await prisma.$queryRaw`
+    pragma journal_mode = WAL;
+    pragma synchronous = normal;
+    pragma temp_store = memory;
+    pragma mmap_size = 30000000000;
+  `;
+
+  console.log({ prismaWalMode });
+
+  app.get("/ping", async () => {
     return {
       name: "Palhari, 2022",
       now: new Date(),
@@ -55,7 +64,7 @@ async function run() {
       contactEmail: string;
       appName: string;
     };
-  }>("/notify", async (req, res) => {
+  }>("/notify", async (req) => {
     const { contactEmail, contactFirstName, contactLastName, appName } =
       req.body;
 
@@ -100,7 +109,52 @@ async function run() {
     return "ok";
   });
 
-  // app.get("/video", async (req, res) => {});
+  app.get<{ Params: { hash: string } }>("/video/:hash", async (req, res) => {
+    const { hash } = req.params;
+
+    const video = await prisma.videoNotification.findFirst({
+      where: {
+        hash,
+      },
+    });
+
+    if (!video) {
+      return res.status(404).send({ msg: `Video not found with hash ${hash}` });
+    }
+
+    let url = await getDownloadURL(
+      ref(storage, `/${video.finalVideoName}`)
+    );
+
+    res.redirect(302, url);
+  });
+
+  async function sendVideoToBMContact(params: {
+    email: string;
+    welcomizerVideoURL: string;
+  }) {
+    const { email, welcomizerVideoURL } = params;
+
+    if (email !== "pedropalhari@gmail.com") return;
+
+    let response = await fetch(
+      `https://api.berserkermail.com/external-api/contact`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${CONFIG.BM_API_KEY}`,
+        },
+        body: JSON.stringify({
+          email,
+          customFields: {
+            welcomizerVideoURL,
+          },
+          tags: [CONFIG.BM_SEND_VIDEO_START_TAG],
+        }),
+      }
+    );
+  }
 
   async function listVideos() {
     const response = await listAll(listRef);
@@ -132,25 +186,40 @@ async function run() {
     let files = await listVideos();
     console.log({ files });
 
-    // Get all files that are processed now
-    let videoIdsProcessed: string[] = [];
+    // Get all files that are processed now, add their specific processed URLs
 
-    videosNotProcessed.forEach((v) => {
-      let isVideoProcessed = files.find((f) => f.split("_")[0] === v.id);
-      if (isVideoProcessed) videoIdsProcessed.push(v.id);
-    });
+    let videosProcessed = await Promise.all(
+      videosNotProcessed.map(async (v) => {
+        let finalVideoName = files.find((f) => f.split("_")[0] === v.id);
+        if (finalVideoName) {
+          // Update the video URL
+          let videoProcessed = await prisma.videoNotification.update({
+            where: {
+              id: v.id,
+            },
+            data: {
+              alreadyProcessed: true,
+              finalVideoName,
+            },
+          });
 
-    // Mark videos processed as processed
-    if (videoIdsProcessed.length > 0) {
-      await prisma.videoNotification.updateMany({
-        where: {
-          id: { in: videoIdsProcessed },
-        },
-        data: {
-          alreadyProcessed: true,
-        },
+          return videoProcessed;
+        }
+      })
+    );
+
+    videosProcessed
+      .filter((v) => v)
+      .forEach(async (v) => {
+        if (!v || !v.contactEmail) return;
+
+        console.log(`Send email to ${v?.contactEmail}`);
+
+        await sendVideoToBMContact({
+          email: v.contactEmail,
+          welcomizerVideoURL: `https://video.welcomizer.com/?video=${v.hash}`,
+        });
       });
-    }
 
     return setTimeout(() => listVideosTailCall(), 15 * 1000);
   }

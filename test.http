@@ -5,6 +5,6 @@ Content-Type: application/json
 {
   "contactFirstName": "Pedro",
   "contactLastName": "Palhari",
-  "contactEmail": "gadfaria@gmail.com",
+  "contactEmail": "pedropalhari@gmail.com",
   "appName": "Gabriel's App"
 }

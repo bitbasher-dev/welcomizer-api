@@ -16,6 +16,7 @@ model VideoNotification {
   contactEmail     String
   alreadyProcessed Boolean
   hash             String
+  finalVideoName   String?
 
   createdAt DateTime @default(now())
 }
