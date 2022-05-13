@@ -44,7 +44,7 @@ app.register(fastifyCors);
 const prisma = new PrismaClient();
 
 async function getFirebaseFCMTokens() {
-  const docRef = doc(db, "users", "9uKM9DzNVaV0IyYyDTDSaZnt3R62");
+  const docRef = doc(db, "users", "NDBJckQhF6hlkkH3GCaKDDwJ6NQ2");
   const docSnap = await getDoc(docRef);
 
   return docSnap.data()?.fcmTokens;
