@@ -129,7 +129,7 @@ async function run() {
     });
 
     const responseJSON = await response.json();
-    console.log({ responseJSON });
+    console.log(JSON.stringify({ responseJSON }));
 
     return "ok";
   });
