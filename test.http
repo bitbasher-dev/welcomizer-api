@@ -6,5 +6,6 @@ Content-Type: application/json
   "contactFirstName": "Pedro",
   "contactLastName": "Palhari",
   "contactEmail": "pedropalhari@gmail.com",
-  "appName": "Gabriel's App"
+  "appName": "Gabriel's App",
+  "firebaseUserId": "NDBJckQhF6hlkkH3GCaKDDwJ6NQ2"
 }

@@ -1,2 +1,2 @@
 require("tsm");
-require("./index");
+require("./server");

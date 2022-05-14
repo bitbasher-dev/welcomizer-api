@@ -13,9 +13,11 @@ datasource db {
 model VideoNotification {
   id String @id @default(cuid())
 
+  firebaseUserId   String
   contactEmail     String
   alreadyProcessed Boolean
   hash             String
+  
   finalVideoName   String?
 
   createdAt DateTime @default(now())
