@@ -50,7 +50,7 @@ async function getFirebaseFCMTokens(params: { firebaseUserId: string }) {
 
   let userRef = await firestore.doc(`users/${firebaseUserId}`).get();
 
-  return userRef.data()?.fcmToken as string[] | undefined;
+  return userRef.data()?.fcmTokens as string[] | undefined;
 }
 
 async function run() {
