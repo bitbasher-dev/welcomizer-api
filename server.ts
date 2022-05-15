@@ -46,6 +46,8 @@ const prisma = new PrismaClient();
 async function getFirebaseFCMTokens(params: { firebaseUserId: string }) {
   const { firebaseUserId } = params;
 
+  console.log({ firebaseUserId: `users/${firebaseUserId}` });
+
   let userRef = await firestore.doc(`users/${firebaseUserId}`).get();
 
   return userRef.data()?.fcmToken as string[] | undefined;
