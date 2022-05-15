@@ -48,7 +48,7 @@ async function getFirebaseFCMTokens(params: { firebaseUserId: string }) {
 
   let userRef = await firestore.doc(`users/${firebaseUserId}`).get();
 
-  return userRef.data()?.fcmTokens;
+  return userRef.data()?.fcmToken as string[] | undefined;
 }
 
 async function run() {
@@ -105,6 +105,13 @@ async function run() {
     let registration_ids = await getFirebaseFCMTokens({
       firebaseUserId,
     });
+
+    registration_ids = registration_ids?.filter((r) => r);
+
+    if (!registration_ids) {
+      console.log("No registration ids!");
+      return "partial-ok";
+    }
 
     const response = await fetch(`https://fcm.googleapis.com/fcm/send`, {
       method: "POST",

@@ -32,7 +32,7 @@ exports.generateThumbnail = functions.storage
     const videoFileName = filePath;
     const [videoId] = videoFileName.split("_");
 
-    console.log({videoId, videoFileName})
+    console.log({ videoId, videoFileName });
 
     let query = qs.stringify({ videoId, videoFileName });
 
